@@ -3,11 +3,12 @@ const jwt = require('jsonwebtoken');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 const UnauthorizedError = require('../errors/UnauthorizedError');
+const { REQUIRE_AUTHORIZATION } = require('../utils/constants');
 
 const auth = (req, res, next) => {
   const { authorization } = req.headers;
   if (!authorization || !authorization.startsWith('Bearer ')) {
-    return next(new UnauthorizedError('Необходима авторизация'));
+    return next(new UnauthorizedError(REQUIRE_AUTHORIZATION));
   }
   const token = authorization.replace('Bearer ', '');
   let payload;
@@ -17,7 +18,7 @@ const auth = (req, res, next) => {
       NODE_ENV === 'production' ? JWT_SECRET : 'JWT_SECRET',
     );
   } catch (err) {
-    next(new UnauthorizedError('Необходима авторизация'));
+    next(new UnauthorizedError(REQUIRE_AUTHORIZATION));
   }
   req.user = payload;
   return next();

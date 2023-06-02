@@ -9,6 +9,9 @@ const ConflictError = require('../errors/ConflictError');
 const BadRequestError = require('../errors/BadRequestError');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 const NotFoundError = require('../errors/NotFoundError');
+const {
+  USER_NOT_FOUND, INVALID_DATA, EMAIL_ALREADY_REGISTERED, INVALID_EMAIL_OR_PASSWORD,
+} = require('../utils/constants');
 
 const createUser = (req, res, next) => {
   bcrypt.hash(req.body.password, 10).then((hash) => {
@@ -24,12 +27,12 @@ const createUser = (req, res, next) => {
       .catch((error) => {
         if (error.code === 11000) {
           return next(
-            new ConflictError('Пользователь с такой почтой уже зарегистрирвован'),
+            new ConflictError(EMAIL_ALREADY_REGISTERED),
           );
         }
         if (error.name === 'ValidationError') {
           return next(
-            new BadRequestError('Переданы некорректные данные.'),
+            new BadRequestError(INVALID_DATA),
           );
         }
         return next(error);
@@ -44,13 +47,13 @@ const login = (req, res, next) => {
     .then((user) => {
       if (!user) {
         return next(
-          new UnauthorizedError('Неправильные почта или пароль'),
+          new UnauthorizedError(INVALID_EMAIL_OR_PASSWORD),
         );
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return next(new UnauthorizedError('Неправильные почта или пароль'));
+            return next(new UnauthorizedError(INVALID_EMAIL_OR_PASSWORD));
           }
           const token = jwt.sign(
             { _id: user._id },
@@ -66,17 +69,17 @@ const login = (req, res, next) => {
 };
 
 const getUser = (req, res, next) => {
-  User.findById(req.params.id)
+  User.findById(req.user._id)
     .then((user) => {
       if (!user) {
-        return next(new NotFoundError('Пользователь по указанному _id не найден'));
+        return next(new NotFoundError(USER_NOT_FOUND));
       }
       return res.send(user);
     })
     .catch((error) => {
       if (error.name === 'CastError') {
         return next(
-          new BadRequestError('Переданы не валидные данные'),
+          new BadRequestError(INVALID_DATA),
         );
       }
       return next(error);
@@ -85,25 +88,29 @@ const getUser = (req, res, next) => {
 
 const updateProfile = (req, res, next) => {
   const owner = req.user._id;
-  const { name, about } = req.body;
+  const { name, email } = req.body;
 
   User.findByIdAndUpdate(
     owner,
-    { name, about },
+    { name, email },
     { new: true, runValidators: true },
   )
     .then((user) => {
       if (!user) {
         return next(
-          new NotFoundError('Пользователь по указанному _id не найден'),
+          new NotFoundError(USER_NOT_FOUND),
         );
       }
       return res.send(user);
     })
     .catch((error) => {
-      if (error.name === 'ValidationError') {
+      if (error.code === 11000) {
         return next(
-          new BadRequestError('Переданы некорректные данные.'),
+          new ConflictError(EMAIL_ALREADY_REGISTERED),
+        );
+      } if (error.name === 'ValidationError') {
+        return next(
+          new BadRequestError(INVALID_DATA),
         );
       }
       return next(error);
