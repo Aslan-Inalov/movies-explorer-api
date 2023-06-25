@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const {
   NODE_ENV,
-  PORT = 3000,
+  PORT = 4000,
   DB_PATH,
 } = process.env;
 
