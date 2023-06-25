@@ -9,11 +9,11 @@ const router = require('./routes');
 const errorsHandler = require('./middlewares/errorHandler');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const limiter = require('./utils/limiter');
-const { PORT } = require('./config');
+const { DB_PATH, PORT } = require('./config');
 
 const app = express();
 
-mongoose.connect('mongodb://localhost:27017/bitfilmsdb');
+mongoose.connect(DB_PATH);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
